@@ -17,8 +17,8 @@ DEFAULT_HEADERS = {
 }
 
 # Configurações de scraping
-DELAY_BETWEEN_REQUESTS = 1.0
-SELENIUM_TIMEOUT = 10
+DELAY_BETWEEN_REQUESTS = 0.5  # Mantemos rápido
+SELENIUM_TIMEOUT = 30
 HEADLESS_BROWSER = True
 
 # Mapeamento de Combustível (Input -> Parâmetro URL Otomoto)
@@ -42,6 +42,6 @@ TRANSMISSION_MAP = {
 DATABASE_PATH = os.path.join('data', 'otomoto_database.json')
 
 # Configurações de Extração Completa
-FULL_EXTRACTION_OUTPUT_DIR = os.path.join('cars')    # Pasta raiz de output
-FULL_EXTRACTION_DELAY = 2.5                           # Segundos entre requests (respeito ao servidor)
-FULL_EXTRACTION_MAX_PAGES = 3                         # Páginas máximas por marca/modelo
+FULL_EXTRACTION_OUTPUT_DIR = os.path.join('cars')
+FULL_EXTRACTION_DELAY = 0.5  # Segundos entre requests (respeito ao servidor)
+FULL_EXTRACTION_MAX_PAGES = None  # None = sem limite; paginação até fim

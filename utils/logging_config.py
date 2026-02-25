@@ -36,6 +36,13 @@ def setup_logging():
         ]
     )
     
+    # --- SILENCIAR MÓDULOS EXTERNOS CHATOS ---
+    # Isto oculta os avisos de versão do ChromeDriver e afins
+    logging.getLogger('selenium').setLevel(logging.ERROR)
+    
+    # Isto oculta os avisos de tentativas de reconexão ("Retrying...") que podes ter visto antes
+    logging.getLogger('urllib3').setLevel(logging.ERROR)
+    
     # Log inicial
     logger = logging.getLogger(__name__)
     logger.info("="*50)

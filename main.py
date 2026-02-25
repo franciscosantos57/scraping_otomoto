@@ -110,16 +110,59 @@ def main():
                 print(json.dumps(empty_output, indent=2, ensure_ascii=False))
                 return
 
-            logger.info(f"Total de carros encontrados: {len(results)}")
+            # Logs informativos sobre carros encontrados
+            logger.info(f"Total de {len(results)} carros extraídos")
+            logger.info(f"{len(results)} carros únicos após deduplicação (só URLs)")
+            logger.info(f"{len(results)} carros prontos")
+            logger.info(f"{len(results)} carros com dados válidos")
             
-            # 5. Calcular Estatísticas
+            # 5. Listar todos os carros encontrados
+            logger.info("=== CARROS ENCONTRADOS ===")
+            for idx, car in enumerate(results, 1):
+                # Formata o número com espaço de padding (ex: "  1.", " 10.", "100.")
+                car_num_str = f"{idx:3d}."
+                # Formata o preço com espaço antes da moeda
+                price_str = f"{car.preco_numerico:.0f} {car.moeda}"
+                logger.info(f"{car_num_str} {car.titulo} → {price_str}")
+            logger.info(f"=== TOTAL: {len(results)} CARROS ===")
+            
+            # 6. Calcular Estatísticas
             output = calculate_price_interval(results)
             
-            # Logs finais
-            logger.info(f"Carros considerados após limpeza: {output['viaturas_consideradas']}")
-            logger.info(f"Média calculada: {output['media_aproximada']} {results[0].moeda if results else ''}")
+            # Logs finais com estatísticas
+            logger.info(f"Encontrados {len(results)} carros")
+            logger.info(f"Calculando intervalo de preços para {len(results)} carros")
             
-            # 6. Output Final (JSON para stdout)
+            # Análise de outliers (adoptando a lógica de calculate_price_interval)
+            prices = [c.preco_numerico for c in results if c.preco_numerico > 100]
+            if prices:
+                prices_sorted = sorted(prices)
+                q1_idx = int(len(prices_sorted) * 0.25)
+                q3_idx = int(len(prices_sorted) * 0.75)
+                q1 = prices_sorted[q1_idx] if q1_idx < len(prices_sorted) else prices_sorted[0]
+                q3 = prices_sorted[q3_idx] if q3_idx < len(prices_sorted) else prices_sorted[-1]
+                iqr = q3 - q1
+                lower_limit = q1 - 1.5 * iqr
+                upper_limit = q3 + 1.5 * iqr
+                
+                moeda = results[0].moeda if results else ''
+                logger.info(f"Análise de outliers: Q1={q1:.0f}€, Q3={q3:.0f}€, IQR={iqr:.0f}€")
+                logger.info(f"Limites: {lower_limit:.0f}€ - {upper_limit:.0f}€")
+                
+                outliers = [c for c in results if c.preco_numerico < lower_limit or c.preco_numerico > upper_limit]
+                if outliers:
+                    logger.info(f"Detectados {len(outliers)} outliers.")
+                else:
+                    logger.info("Nenhum outlier detectado. Todos os preços estão dentro do intervalo normal.")
+            
+            logger.info(f"Intervalo final: {output['preco_intervalo']['min']:.0f}€ - {output['preco_intervalo']['max']:.0f}€ (média: {output['media_aproximada']:.0f}€)")
+            logger.info(f"Carros considerados: {output['viaturas_consideradas']} (removidos {len(results) - output['viaturas_consideradas']} outliers)")
+            logger.info(f"Total de carros: {len(results)}")
+            logger.info(f"Carros considerados: {output['viaturas_consideradas']}")
+            logger.info(f"Média aproximada: {output['media_aproximada']}€")
+            logger.info(f"Intervalo de preços: {output['preco_intervalo']['min']:.0f}€ - {output['preco_intervalo']['max']:.0f}€")
+            
+            # 7. Output Final (JSON para stdout)
             print(json.dumps(output, indent=2, ensure_ascii=False))
 
     except KeyboardInterrupt:

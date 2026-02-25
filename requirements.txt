@@ -1,6 +1,6 @@
 requests
 beautifulsoup4
-selenium
-webdriver-manager
+playwright
+playwright-stealth
 fake-useragent
 python-dotenv
