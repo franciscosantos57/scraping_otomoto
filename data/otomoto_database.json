@@ -2,7 +2,12 @@
   "metadata": {
     "creation_date": "2026-02-16",
     "source": "Complete Database from Otomoto.pl",
-    "total_brands": 179
+    "description": "All models from all brands",
+    "version": "1.0",
+    "total_brands": 179,
+    "total_models": 2275,
+    "total_submodels": 0,
+    "models_with_submodels": 0
   },
   "brands": {
     "AVATR": {
