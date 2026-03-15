@@ -11,6 +11,7 @@ OTOMOTO_SEARCH_URL = f"{OTOMOTO_BASE_URL}/osobowe"
 DEFAULT_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
     'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'br, gzip, deflate',  # Brotli (br) + gzip + deflate | ratio ~13% (553MB wire vs 4.1GB descomprimido)
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1',
 }

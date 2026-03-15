@@ -1,5 +1,6 @@
 requests
 beautifulsoup4
+lxml>=4.9.0
 playwright
 playwright-stealth
 fake-useragent

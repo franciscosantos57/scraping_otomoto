@@ -100,7 +100,10 @@ class OtomotoScraper:
                 resource_type = route.request.resource_type
                 url = route.request.url.lower()
                 
-                if resource_type in ["image", "media", "font", "stylesheet"]:
+                # Bloquear ficheiros desnecessários para extração de dados.
+                # NOTA: "script" bloqueia apenas ficheiros .js externos (não inline scripts como __NEXT_DATA__).
+                # Bundles Next.js (~2-4MB) eram re-descarregados em cada proxy rotation → principal fonte de bandwidth.
+                if resource_type in ["image", "media", "font", "stylesheet", "script"]:
                     return route.abort()
                     
                 blocked_domains = ['google', 'criteo', 'gemius', 'hotjar', 'facebook', 'tiktok', 'adsystem', 'doubleclick']
@@ -177,9 +180,12 @@ class OtomotoScraper:
                     self._restart_playwright(burn_proxy=True)
 
             # --- Extração de Dados ---
-            soup = BeautifulSoup(html, 'html.parser')
-            page_cars = self._extract_next_data(soup)
-            if not page_cars: page_cars = self._extract_from_html(soup)
+            # Extração directa via regex no HTML raw: evita construir DOM completo para o caminho feliz.
+            # BeautifulSoup apenas é instanciado como fallback (muito mais raro).
+            page_cars = self._extract_next_data_raw(html)
+            if not page_cars:
+                soup = BeautifulSoup(html, 'lxml')
+                page_cars = self._extract_from_html(soup)
 
             if not page_cars:
                 break
@@ -194,19 +200,22 @@ class OtomotoScraper:
 
         return self._deduplicate(all_cars)
 
-    def _deduplicate(self, cars):
-        unique = {}
-        for c in cars:
-            key = c.url if c.url else f"{c.titulo}_{c.preco}_{c.quilometragem}"
-            unique[key] = c
-        return list(unique.values())
-
-    def _extract_next_data(self, soup):
+    def _extract_next_data_raw(self, html: str) -> list:
+        """Extrai __NEXT_DATA__ directamente do HTML raw via regex, sem construir DOM.
+        
+        O <script id="__NEXT_DATA__"> é um inline script (SSR do Next.js) — não é um
+        ficheiro externo, por isso não é afectado pelo bloqueio de resource_type 'script'.
+        """
         cars = []
         try:
-            script = soup.find('script', id='__NEXT_DATA__')
-            if not script: return []
-            data = json.loads(script.string)
+            match = re.search(
+                r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
+                html, re.DOTALL
+            )
+            if not match:
+                return []
+            data = json.loads(match.group(1))
+
             def find_items(obj):
                 if isinstance(obj, dict):
                     if 'edges' in obj and isinstance(obj['edges'], list):
@@ -218,13 +227,22 @@ class OtomotoScraper:
                         if isinstance(v, (dict, list)): yield from find_items(v)
                 elif isinstance(obj, list):
                     for item in obj: yield from find_items(item)
+
             for item in find_items(data):
                 if isinstance(item, dict):
                     if 'title' in item and 'price' in item and ('url' in item or 'id' in item):
-                         car = self._parse_node_data(item)
-                         if car: cars.append(car)
-        except: pass
+                        car = self._parse_node_data(item)
+                        if car: cars.append(car)
+        except Exception:
+            pass
         return cars
+
+    def _deduplicate(self, cars):
+        unique = {}
+        for c in cars:
+            key = c.url if c.url else f"{c.titulo}_{c.preco}_{c.quilometragem}"
+            unique[key] = c
+        return list(unique.values())
 
     def _parse_node_data(self, node):
         try:
